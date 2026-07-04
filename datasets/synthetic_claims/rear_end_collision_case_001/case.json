@@ -1,0 +1,39 @@
+{
+  "case_id": "rear_end_collision_case_001",
+  "title": "Rear-end collision with possible intake discrepancy",
+  "claim_type": "auto_collision",
+  "evidence": [
+    {
+      "case_id": "rear_end_collision_case_001",
+      "title": "Policy document",
+      "type": "document",
+      "content": "Auto policy ACME-100 covers collision damage after deductible when incident date, claimant statement, photos of claimed damage, and repair estimate are provided."
+    },
+    {
+      "case_id": "rear_end_collision_case_001",
+      "title": "Claim intake form",
+      "type": "document",
+      "content": "The claimant reported an incident date of June 4 and described front passenger-side damage on the intake form."
+    },
+    {
+      "case_id": "rear_end_collision_case_001",
+      "title": "Repair estimate",
+      "type": "document",
+      "content": "Repair estimate lists rear bumper replacement, paint labor, and sensor calibration after a rear impact. Estimated total is $1,240."
+    },
+    {
+      "case_id": "rear_end_collision_case_001",
+      "title": "Accident photo IMG_0421",
+      "type": "image",
+      "content": "Image caption: visible dent and deformation on the rear bumper. No front passenger-side damage is visible in this photo.",
+      "metadata": {"visual_task": "image-text-to-text; object-detection"}
+    },
+    {
+      "case_id": "rear_end_collision_case_001",
+      "title": "Claimant call transcript",
+      "type": "audio",
+      "content": "Automatic speech recognition transcript: caller says the car was hit from behind on June 5 and the rear bumper was damaged.",
+      "metadata": {"audio_task": "automatic-speech-recognition"}
+    }
+  ]
+}
