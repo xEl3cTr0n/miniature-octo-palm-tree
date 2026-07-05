@@ -5,7 +5,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from pydantic import BaseModel, Field
 
 from claimlens.api.dashboard import render_dashboard
@@ -128,6 +128,15 @@ def case_report(case_id: str) -> CaseReport:
         return case_store.build_report(case_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/cases/{case_id}/report.md")
+def case_report_markdown(case_id: str) -> Response:
+    try:
+        markdown = case_store.build_report_markdown(case_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return Response(content=markdown, media_type="text/markdown")
 
 
 @app.get("/data-sources/nhtsa/vehicle-evidence")

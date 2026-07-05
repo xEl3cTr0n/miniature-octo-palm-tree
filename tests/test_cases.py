@@ -95,3 +95,21 @@ def test_case_store_builds_reviewer_report() -> None:
         "Request missing evidence if required items are absent.",
         "Escalate low-confidence or contradiction-heavy cases to a human reviewer.",
     ]
+
+
+def test_case_store_exports_reviewer_report_markdown() -> None:
+    store = CaseStore()
+    record = store.create_case(
+        title="2020 Honda Accord warning lights",
+        claim_type="vehicle_safety",
+        evidence=sample_evidence(),
+        source="nhtsa",
+    )
+
+    markdown = store.build_report_markdown(record.case_id)
+
+    assert markdown.startswith("# 2020 Honda Accord warning lights")
+    assert f"Case ID: `{record.case_id}`" in markdown
+    assert "## Citation-Backed Answer" in markdown
+    assert "- NHTSA recall 20V771000#chunk-1" in markdown
+    assert "## Reviewer Next Steps" in markdown

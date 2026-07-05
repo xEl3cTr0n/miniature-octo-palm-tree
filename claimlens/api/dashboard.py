@@ -321,7 +321,10 @@ def render_dashboard() -> str:
           <section class="panel">
             <div class="panel-header">
               <h2>Reviewer Report</h2>
-              <button class="secondary" id="reportButton" type="button">Generate</button>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="secondary" id="reportButton" type="button">Generate</button>
+                <button class="secondary" id="exportMarkdownButton" type="button">Export Markdown</button>
+              </div>
             </div>
             <div class="panel-body result" id="report">
               <p class="empty">No report generated.</p>
@@ -599,6 +602,15 @@ def render_dashboard() -> str:
       setStatus("Report ready");
     }
 
+    function exportMarkdownReport() {
+      if (!selectedCaseId) {
+        setStatus("Import or select a case first.", true);
+        return;
+      }
+      window.open(`/cases/${selectedCaseId}/report.md`, "_blank");
+      setStatus("Markdown report opened");
+    }
+
     async function runEvaluations() {
       setStatus("Running evaluations...");
       const payload = await requestJson("/evals/demo");
@@ -620,6 +632,9 @@ def render_dashboard() -> str:
     });
     document.getElementById("reportButton").addEventListener("click", () => {
       generateReport().catch((error) => setStatus(error.message, true));
+    });
+    document.getElementById("exportMarkdownButton").addEventListener("click", () => {
+      exportMarkdownReport();
     });
     document.getElementById("evalButton").addEventListener("click", () => {
       runEvaluations().catch((error) => setStatus(error.message, true));

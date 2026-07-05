@@ -173,6 +173,59 @@ class CaseStore:
             next_steps=list(DEFAULT_REVIEWER_STEPS),
         )
 
+    def build_report_markdown(self, case_id: str) -> str:
+        report = self.build_report(case_id)
+        lines = [
+            f"# {report.title}",
+            "",
+            f"Case ID: `{report.case_id}`",
+            f"Evidence items: {report.evidence_count}",
+            f"Confidence: {report.answer.confidence}",
+            "",
+            "## Summary",
+            "",
+            report.summary,
+            "",
+            "## Citation-Backed Answer",
+            "",
+            report.answer.answer,
+            "",
+            "## Citations",
+            "",
+        ]
+        lines.extend(f"- {citation}" for citation in report.answer.citations)
+        if not report.answer.citations:
+            lines.append("- No citations returned.")
+        lines.extend(
+            [
+                "",
+                "## Missing Evidence",
+                "",
+            ]
+        )
+        lines.extend(f"- {item}" for item in report.answer.missing_evidence)
+        if not report.answer.missing_evidence:
+            lines.append("- None flagged.")
+        lines.extend(
+            [
+                "",
+                "## Contradictions",
+                "",
+            ]
+        )
+        lines.extend(f"- {item}" for item in report.answer.contradictions)
+        if not report.answer.contradictions:
+            lines.append("- None flagged.")
+        lines.extend(
+            [
+                "",
+                "## Reviewer Next Steps",
+                "",
+            ]
+        )
+        lines.extend(f"- {step}" for step in report.next_steps)
+        return "\n".join(lines).strip() + "\n"
+
     def _list_records(self) -> list[CaseRecord]:
         rows = self._connection.execute(
             """

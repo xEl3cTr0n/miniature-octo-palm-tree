@@ -52,6 +52,12 @@ def test_case_api_creates_lists_asks_and_reports() -> None:
     assert report["case_id"] == created["case_id"]
     assert report["answer"]["confidence"] == 0.72
 
+    markdown_response = client.get(f"/cases/{created['case_id']}/report.md")
+    assert markdown_response.status_code == 200
+    assert markdown_response.headers["content-type"].startswith("text/markdown")
+    assert "# 2020 Honda Accord warning lights" in markdown_response.text
+    assert "## Citation-Backed Answer" in markdown_response.text
+
 
 def test_case_api_uses_configured_database_between_store_instances(
     monkeypatch, tmp_path

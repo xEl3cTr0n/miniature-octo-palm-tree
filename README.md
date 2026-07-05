@@ -99,6 +99,12 @@ Generate a reviewer report:
 curl http://127.0.0.1:8000/cases/{case_id}/report
 ```
 
+Export the same report as Markdown:
+
+```bash
+curl http://127.0.0.1:8000/cases/{case_id}/report.md
+```
+
 ## Real Data Demo: NHTSA
 
 ClaimLens can pull public vehicle complaint and recall data from NHTSA and convert it into citable evidence records.
