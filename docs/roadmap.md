@@ -14,6 +14,8 @@
 - NHTSA vehicle complaint and recall adapter
 - Scripted live-data demo
 - FastAPI endpoint for public data source querying
+- Stored case workspace endpoints
+- Reviewer report endpoint for stored cases
 - Clean CI with deterministic unit tests
 
 ## Phase 2: Multimodal AI

@@ -53,6 +53,43 @@ curl -X POST http://127.0.0.1:8000/ask \
   }'
 ```
 
+## Case Workspace API
+
+Create a stored review case:
+
+```bash
+curl -X POST http://127.0.0.1:8000/cases \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "title": "2020 Honda Accord warning lights",
+    "claim_type": "vehicle_safety",
+    "source": "manual",
+    "evidence": [
+      {
+        "id": "recall-1",
+        "type": "text",
+        "title": "NHTSA recall 20V771000",
+        "content": "A BCM software issue may affect rear camera behavior and exterior lights.",
+        "metadata": {"source": "nhtsa_recalls"}
+      }
+    ]
+  }'
+```
+
+Ask a stored case question:
+
+```bash
+curl -X POST http://127.0.0.1:8000/cases/{case_id}/ask \
+  -H 'Content-Type: application/json' \
+  -d '{"question": "Does the evidence mention rear camera behavior?"}'
+```
+
+Generate a reviewer report:
+
+```bash
+curl http://127.0.0.1:8000/cases/{case_id}/report
+```
+
 ## Real Data Demo: NHTSA
 
 ClaimLens can pull public vehicle complaint and recall data from NHTSA and convert it into citable evidence records.
@@ -83,6 +120,20 @@ curl -X POST http://127.0.0.1:8000/ask/nhtsa \
 ```
 
 This source is useful for portfolio demos because it shows real-world data ingestion, evidence normalization, citation-backed retrieval, and review-oriented answers without requiring private claims data.
+
+Import NHTSA data directly into the case workspace:
+
+```bash
+curl -X POST http://127.0.0.1:8000/cases/import/nhtsa \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "make": "Honda",
+    "model": "Accord",
+    "year": 2020,
+    "max_complaints": 10,
+    "max_recalls": 5
+  }'
+```
 
 ## Roadmap
 

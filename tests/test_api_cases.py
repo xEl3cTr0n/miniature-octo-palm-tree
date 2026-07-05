@@ -1,0 +1,91 @@
+from fastapi.testclient import TestClient
+
+from claimlens.api import main
+from claimlens.core.models import EvidenceItem, EvidenceType
+
+
+def fresh_client() -> TestClient:
+    main.case_store = main.CaseStore()
+    return TestClient(main.app)
+
+
+def test_case_api_creates_lists_asks_and_reports() -> None:
+    client = fresh_client()
+
+    create_response = client.post(
+        "/cases",
+        json={
+            "title": "2020 Honda Accord warning lights",
+            "claim_type": "vehicle_safety",
+            "source": "manual",
+            "evidence": [
+                {
+                    "id": "recall-1",
+                    "type": "text",
+                    "title": "NHTSA recall 20V771000",
+                    "content": "A BCM software issue may affect rear camera behavior.",
+                    "metadata": {"source": "nhtsa_recalls"},
+                }
+            ],
+        },
+    )
+
+    assert create_response.status_code == 200
+    created = create_response.json()
+    assert created["case_id"].startswith("case-")
+    assert created["evidence_count"] == 1
+
+    list_response = client.get("/cases")
+    assert list_response.status_code == 200
+    assert list_response.json()[0]["case_id"] == created["case_id"]
+
+    ask_response = client.post(
+        f"/cases/{created['case_id']}/ask",
+        json={"question": "Does the evidence mention rear camera behavior?"},
+    )
+    assert ask_response.status_code == 200
+    assert ask_response.json()["citations"] == ["NHTSA recall 20V771000#chunk-1"]
+
+    report_response = client.get(f"/cases/{created['case_id']}/report")
+    assert report_response.status_code == 200
+    report = report_response.json()
+    assert report["case_id"] == created["case_id"]
+    assert report["answer"]["confidence"] == 0.72
+
+
+def test_case_api_imports_nhtsa_case_with_mocked_evidence(monkeypatch) -> None:
+    client = fresh_client()
+
+    def fake_fetch_vehicle_evidence(**kwargs):
+        assert kwargs["make"] == "Honda"
+        assert kwargs["model"] == "Accord"
+        assert kwargs["year"] == 2020
+        return [
+            EvidenceItem(
+                id="nhtsa-recall-20V771000",
+                type=EvidenceType.TEXT,
+                title="NHTSA recall 20V771000",
+                content="A BCM software issue may affect rear camera behavior.",
+                metadata={"source": "nhtsa_recalls"},
+            )
+        ]
+
+    monkeypatch.setattr(main, "fetch_vehicle_evidence", fake_fetch_vehicle_evidence)
+
+    response = client.post(
+        "/cases/import/nhtsa",
+        json={
+            "make": "Honda",
+            "model": "Accord",
+            "year": 2020,
+            "max_complaints": 2,
+            "max_recalls": 1,
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["title"] == "2020 Honda Accord NHTSA safety review"
+    assert payload["claim_type"] == "vehicle_safety"
+    assert payload["source"] == "nhtsa"
+    assert payload["evidence_count"] == 1
