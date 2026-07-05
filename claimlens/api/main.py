@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from dataclasses import asdict
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -16,6 +17,7 @@ from claimlens.data_sources.nhtsa import (
     evidence_to_dict,
     fetch_vehicle_evidence,
 )
+from claimlens.evaluators.harness import load_evaluation_dataset, run_evaluation
 
 DEFAULT_CASE_DB_PATH = Path("var/claimlens_cases.sqlite3")
 
@@ -167,6 +169,12 @@ def ask_nhtsa(request: NHTSAAskRequest) -> ClaimAnswer:
     except NHTSADataSourceError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     return answer_claim(request.question, evidence, claim_type="vehicle_safety")
+
+
+@app.get("/evals/demo")
+def demo_evaluation() -> dict[str, object]:
+    summary = run_evaluation(load_evaluation_dataset())
+    return asdict(summary)
 
 
 @app.post("/cases/import/nhtsa", response_model=CaseRecord)

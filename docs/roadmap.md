@@ -16,6 +16,7 @@
 - FastAPI endpoint for public data source querying
 - Stored case workspace endpoints
 - Reviewer report endpoint for stored cases
+- Deterministic evaluation dataset and CLI/API harness
 - Clean CI with deterministic unit tests
 
 ## Phase 2: Multimodal AI

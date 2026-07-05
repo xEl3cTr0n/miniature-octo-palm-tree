@@ -1,0 +1,64 @@
+[
+  {
+    "id": "rear-camera-recall",
+    "question": "Does the evidence mention rear camera failure?",
+    "claim_type": "vehicle_safety",
+    "evidence": [
+      {
+        "id": "nhtsa-recall-20V771000",
+        "type": "text",
+        "title": "NHTSA recall 20V771000",
+        "content": "Honda recalled certain 2018-2020 Accord vehicles because a Body Control Module software error may disable the rearview camera and exterior lights.",
+        "metadata": {
+          "source": "nhtsa_recalls",
+          "component": "electrical_system"
+        }
+      },
+      {
+        "id": "nhtsa-complaint-11747287",
+        "type": "text",
+        "title": "NHTSA complaint 11747287",
+        "content": "The driver reported all dashboard warning lights were on while driving a 2020 Honda Accord.",
+        "metadata": {
+          "source": "nhtsa_complaints",
+          "component": "unknown_or_other"
+        }
+      }
+    ],
+    "expected_citations": [
+      "NHTSA recall 20V771000#chunk-1"
+    ],
+    "min_citation_coverage": 0.45
+  },
+  {
+    "id": "warning-light-complaint",
+    "question": "Does the evidence mention dashboard warning lights?",
+    "claim_type": "vehicle_safety",
+    "evidence": [
+      {
+        "id": "nhtsa-complaint-11747287",
+        "type": "text",
+        "title": "NHTSA complaint 11747287",
+        "content": "The driver reported all dashboard warning lights were on while driving a 2020 Honda Accord.",
+        "metadata": {
+          "source": "nhtsa_complaints",
+          "component": "unknown_or_other"
+        }
+      },
+      {
+        "id": "nhtsa-recall-20V771000",
+        "type": "text",
+        "title": "NHTSA recall 20V771000",
+        "content": "A Body Control Module software error may cause rearview camera, exterior lighting, and window malfunctions.",
+        "metadata": {
+          "source": "nhtsa_recalls",
+          "component": "electrical_system"
+        }
+      }
+    ],
+    "expected_citations": [
+      "NHTSA complaint 11747287#chunk-1"
+    ],
+    "min_citation_coverage": 0.45
+  }
+]

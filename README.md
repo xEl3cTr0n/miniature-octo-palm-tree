@@ -37,6 +37,12 @@ uvicorn claimlens.api.main:app --reload
 
 Open `http://127.0.0.1:8000/` for the reviewer dashboard. By default, cases persist to `var/claimlens_cases.sqlite3`; set `CLAIMLENS_CASE_DB=/path/to/cases.sqlite3` to choose a different SQLite database.
 
+Run the deterministic evaluation harness:
+
+```bash
+python scripts/run_eval.py --format json
+```
+
 ## Example API Request
 
 ```bash
