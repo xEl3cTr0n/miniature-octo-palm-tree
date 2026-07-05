@@ -147,6 +147,15 @@ class CaseStore:
             raise KeyError(f"Case not found: {case_id}")
         return self._record_from_row(row)
 
+    def delete_case(self, case_id: str) -> None:
+        with self._connection:
+            cursor = self._connection.execute(
+                "DELETE FROM cases WHERE case_id = ?",
+                (case_id,),
+            )
+        if cursor.rowcount == 0:
+            raise KeyError(f"Case not found: {case_id}")
+
     def ask_case(self, case_id: str, question: str) -> ClaimAnswer:
         record = self.get_case(case_id)
         return answer_claim(question, record.evidence, claim_type=record.claim_type)

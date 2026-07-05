@@ -294,7 +294,10 @@ def render_dashboard() -> str:
           <button id="manualCreateButton" type="button">Create Manual Case</button>
           <div class="panel-header" style="margin: 4px -14px -2px;">
             <h2>Case Queue</h2>
-            <button class="secondary" id="refreshButton" type="button">Refresh</button>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button class="secondary" id="refreshButton" type="button">Refresh</button>
+              <button class="secondary" id="deleteCaseButton" type="button">Delete Case</button>
+            </div>
           </div>
           <div class="case-list" id="caseList">
             <p class="empty">No cases loaded.</p>
@@ -423,6 +426,13 @@ def render_dashboard() -> str:
     function renderAnswer(payload) {
       answerEl.textContent = `${payload.answer}\\n\\nConfidence: ${payload.confidence}`;
       renderCitations(payload.citations);
+    }
+
+    function clearSelectedCasePanels() {
+      answerEl.innerHTML = '<p class="empty">Select or import a case, then ask a question.</p>';
+      reportEl.innerHTML = '<p class="empty">No report generated.</p>';
+      citationsEl.innerHTML = '<p class="empty">No citations yet.</p>';
+      caseEvidenceEl.innerHTML = '<p class="empty">No case selected.</p>';
     }
 
     function renderReport(payload) {
@@ -576,6 +586,22 @@ def render_dashboard() -> str:
       setStatus(`Created ${created.title}`);
     }
 
+    async function deleteSelectedCase() {
+      if (!selectedCaseId) {
+        setStatus("Select a case to delete.", true);
+        return;
+      }
+      const deletingCaseId = selectedCaseId;
+      setStatus(`Deleting ${deletingCaseId}...`);
+      await requestJson(`/cases/${selectedCaseId}`, {
+        method: "DELETE"
+      });
+      selectedCaseId = null;
+      clearSelectedCasePanels();
+      await refreshCases();
+      setStatus(`Deleted ${deletingCaseId}`);
+    }
+
     async function askSelectedCase() {
       if (!selectedCaseId) {
         setStatus("Import or select a case first.", true);
@@ -623,6 +649,9 @@ def render_dashboard() -> str:
     });
     document.getElementById("refreshButton").addEventListener("click", () => {
       refreshCases().catch((error) => setStatus(error.message, true));
+    });
+    document.getElementById("deleteCaseButton").addEventListener("click", () => {
+      deleteSelectedCase().catch((error) => setStatus(error.message, true));
     });
     document.getElementById("manualCreateButton").addEventListener("click", () => {
       createManualCase().catch((error) => setStatus(error.message, true));

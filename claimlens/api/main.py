@@ -74,6 +74,11 @@ class NHTSACaseImportRequest(BaseModel):
     max_recalls: int = Field(default=5, ge=1, le=20)
 
 
+class CaseDeleteResponse(BaseModel):
+    case_id: str
+    deleted: bool
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
@@ -112,6 +117,15 @@ def get_case(case_id: str) -> CaseRecord:
         return case_store.get_case(case_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.delete("/cases/{case_id}", response_model=CaseDeleteResponse)
+def delete_case(case_id: str) -> CaseDeleteResponse:
+    try:
+        case_store.delete_case(case_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return CaseDeleteResponse(case_id=case_id, deleted=True)
 
 
 @app.post("/cases/{case_id}/ask", response_model=ClaimAnswer)

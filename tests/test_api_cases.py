@@ -59,6 +59,35 @@ def test_case_api_creates_lists_asks_and_reports() -> None:
     assert "## Citation-Backed Answer" in markdown_response.text
 
 
+def test_case_api_deletes_case() -> None:
+    client = fresh_client()
+    create_response = client.post(
+        "/cases",
+        json={
+            "title": "Delete me",
+            "claim_type": "vehicle_safety",
+            "source": "manual",
+            "evidence": [
+                {
+                    "id": "recall-1",
+                    "type": "text",
+                    "title": "NHTSA recall 20V771000",
+                    "content": "A BCM software issue may affect rear camera behavior.",
+                    "metadata": {"source": "nhtsa_recalls"},
+                }
+            ],
+        },
+    )
+    case_id = create_response.json()["case_id"]
+
+    delete_response = client.delete(f"/cases/{case_id}")
+
+    assert delete_response.status_code == 200
+    assert delete_response.json() == {"case_id": case_id, "deleted": True}
+    assert client.get(f"/cases/{case_id}").status_code == 404
+    assert client.get("/cases").json() == []
+
+
 def test_case_api_uses_configured_database_between_store_instances(
     monkeypatch, tmp_path
 ) -> None:

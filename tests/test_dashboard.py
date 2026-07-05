@@ -17,6 +17,7 @@ def test_dashboard_root_serves_reviewer_console() -> None:
     assert "Case Queue" in html
     assert "Ask Reviewer Question" in html
     assert "Reviewer Report" in html
+    assert "Delete Case" in html
     assert "Export Markdown" in html
     assert "Evidence Inspector" in html
     assert "Evaluation Metrics" in html
@@ -32,6 +33,8 @@ def test_dashboard_targets_case_workspace_endpoints() -> None:
     assert 'requestJson("/cases", {' in html
     assert 'requestJson("/cases")' in html
     assert 'requestJson(`/cases/${selectedCaseId}`)' in html
+    assert 'requestJson(`/cases/${selectedCaseId}`, {' in html
+    assert 'method: "DELETE"' in html
     assert 'requestJson(`/cases/${selectedCaseId}/ask`' in html
     assert 'requestJson(`/cases/${selectedCaseId}/report`' in html
     assert 'window.open(`/cases/${selectedCaseId}/report.md`' in html
