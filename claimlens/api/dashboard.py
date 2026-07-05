@@ -201,6 +201,19 @@ def render_dashboard() -> str:
       border-radius: 6px;
       background: #fff;
     }
+    .evidence-item {
+      display: grid;
+      gap: 6px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+    }
+    .evidence-snippet {
+      color: var(--ink);
+      font-size: 13px;
+      line-height: 1.45;
+    }
     .badge {
       min-width: 52px;
       padding: 4px 8px;
@@ -325,6 +338,14 @@ def render_dashboard() -> str:
         </section>
         <section class="panel">
           <div class="panel-header">
+            <h2>Evidence Inspector</h2>
+          </div>
+          <div class="panel-body stack" id="caseEvidence">
+            <p class="empty">No case selected.</p>
+          </div>
+        </section>
+        <section class="panel">
+          <div class="panel-header">
             <h2>Evaluation Metrics</h2>
             <button class="secondary" id="evalButton" type="button">Run Evals</button>
           </div>
@@ -359,6 +380,7 @@ def render_dashboard() -> str:
     const answerEl = document.getElementById("answer");
     const reportEl = document.getElementById("report");
     const citationsEl = document.getElementById("citations");
+    const caseEvidenceEl = document.getElementById("caseEvidence");
     const evalMetricsEl = document.getElementById("evalMetrics");
     const evalResultsEl = document.getElementById("evalResults");
 
@@ -413,6 +435,30 @@ def render_dashboard() -> str:
       renderCitations(payload.answer.citations);
     }
 
+    function renderCaseEvidence(payload) {
+      if (!payload.evidence || payload.evidence.length === 0) {
+        caseEvidenceEl.innerHTML = '<p class="empty">No evidence attached.</p>';
+        return;
+      }
+      caseEvidenceEl.innerHTML = payload.evidence.map((item) => {
+        const metadata = Object.entries(item.metadata || {})
+          .map(([key, value]) => `${escapeHtml(key)}: ${escapeHtml(value)}`)
+          .join(" · ");
+        const snippet = item.content.length > 320
+          ? `${item.content.slice(0, 320)}...`
+          : item.content;
+        return `
+          <div class="evidence-item">
+            <div>
+              <strong>${escapeHtml(item.title)}</strong>
+              <div class="meta">${escapeHtml(item.type)}${metadata ? ` · ${metadata}` : ""}</div>
+            </div>
+            <div class="evidence-snippet">${escapeHtml(snippet)}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
     function formatPercent(value) {
       return `${Math.round(value * 100)}%`;
     }
@@ -446,7 +492,9 @@ def render_dashboard() -> str:
     async function refreshCases() {
       const cases = await requestJson("/cases");
       if (cases.length === 0) {
+        selectedCaseId = null;
         caseListEl.innerHTML = '<p class="empty">No cases loaded.</p>';
+        caseEvidenceEl.innerHTML = '<p class="empty">No case selected.</p>';
         return;
       }
       caseListEl.innerHTML = cases.map((item) => `
@@ -463,6 +511,16 @@ def render_dashboard() -> str:
         });
       });
       if (!selectedCaseId && cases[0]) selectedCaseId = cases[0].case_id;
+      if (selectedCaseId) await loadSelectedCase();
+    }
+
+    async function loadSelectedCase() {
+      if (!selectedCaseId) {
+        caseEvidenceEl.innerHTML = '<p class="empty">No case selected.</p>';
+        return;
+      }
+      const payload = await requestJson(`/cases/${selectedCaseId}`);
+      renderCaseEvidence(payload);
     }
 
     async function importNhtsaCase() {
