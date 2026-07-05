@@ -14,6 +14,7 @@ def test_dashboard_root_serves_reviewer_console() -> None:
     assert "ClaimLens" in html
     assert "Import NHTSA Case" in html
     assert "Manual Evidence Case" in html
+    assert "Seed Demo Case" in html
     assert "Case Queue" in html
     assert "Ask Reviewer Question" in html
     assert "Reviewer Report" in html
@@ -30,6 +31,7 @@ def test_dashboard_targets_case_workspace_endpoints() -> None:
     html = client.get("/").text
 
     assert 'requestJson("/cases/import/nhtsa"' in html
+    assert 'requestJson("/cases/demo", {' in html
     assert 'requestJson("/cases", {' in html
     assert 'requestJson("/cases")' in html
     assert 'requestJson(`/cases/${selectedCaseId}`)' in html
@@ -51,6 +53,15 @@ def test_dashboard_exposes_manual_case_inputs() -> None:
     assert 'id="manualEvidenceTitle"' in html
     assert 'id="manualEvidenceContent"' in html
     assert 'id="manualCreateButton"' in html
+
+
+def test_dashboard_exposes_demo_case_seed_action() -> None:
+    client = TestClient(main.app)
+
+    html = client.get("/").text
+
+    assert 'id="seedDemoButton"' in html
+    assert "async function seedDemoCase()" in html
 
 
 def test_dashboard_exposes_evidence_inspector() -> None:

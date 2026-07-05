@@ -17,6 +17,7 @@ from claimlens.data_sources.nhtsa import (
     evidence_to_dict,
     fetch_vehicle_evidence,
 )
+from claimlens.demo_cases import build_demo_case
 from claimlens.evaluators.harness import load_evaluation_dataset, run_evaluation
 
 DEFAULT_CASE_DB_PATH = Path("var/claimlens_cases.sqlite3")
@@ -103,6 +104,17 @@ def create_case(request: CaseCreateRequest) -> CaseRecord:
         claim_type=request.claim_type,
         evidence=evidence,
         source=request.source,
+    )
+
+
+@app.post("/cases/demo", response_model=CaseRecord)
+def seed_demo_case() -> CaseRecord:
+    demo_case = build_demo_case()
+    return case_store.create_case(
+        title=demo_case.title,
+        claim_type=demo_case.claim_type,
+        evidence=demo_case.evidence,
+        source=demo_case.source,
     )
 
 

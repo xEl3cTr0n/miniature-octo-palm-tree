@@ -158,3 +158,26 @@ def test_case_api_imports_nhtsa_case_with_mocked_evidence(monkeypatch) -> None:
     assert payload["claim_type"] == "vehicle_safety"
     assert payload["source"] == "nhtsa"
     assert payload["evidence_count"] == 1
+
+
+def test_case_api_seeds_deterministic_demo_case() -> None:
+    client = fresh_client()
+
+    response = client.post("/cases/demo")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["title"] == "Demo: 2020 Honda Accord evidence review"
+    assert payload["claim_type"] == "vehicle_safety"
+    assert payload["source"] == "demo_fixture"
+    assert payload["evidence_count"] == 3
+    assert [item["id"] for item in payload["evidence"]] == [
+        "demo-adjuster-note",
+        "demo-nhtsa-recall-20v771000",
+        "demo-owner-complaint",
+    ]
+
+    list_response = client.get("/cases")
+
+    assert list_response.status_code == 200
+    assert list_response.json()[0]["case_id"] == payload["case_id"]

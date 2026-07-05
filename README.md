@@ -85,6 +85,12 @@ curl -X POST http://127.0.0.1:8000/cases \
   }'
 ```
 
+Seed a portfolio-safe demo case without calling external APIs:
+
+```bash
+curl -X POST http://127.0.0.1:8000/cases/demo
+```
+
 Ask a stored case question:
 
 ```bash

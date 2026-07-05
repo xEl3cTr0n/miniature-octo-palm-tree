@@ -272,6 +272,7 @@ def render_dashboard() -> str:
             <input id="year" value="2020" inputmode="numeric">
           </div>
           <button id="importButton" type="button">Import Case</button>
+          <button class="secondary" id="seedDemoButton" type="button">Seed Demo Case</button>
           <div class="panel-header" style="margin: 4px -14px -2px;">
             <h2>Manual Evidence Case</h2>
           </div>
@@ -555,6 +556,16 @@ def render_dashboard() -> str:
       setStatus(`Imported ${created.title}`);
     }
 
+    async function seedDemoCase() {
+      setStatus("Seeding demo case...");
+      const created = await requestJson("/cases/demo", {
+        method: "POST"
+      });
+      selectedCaseId = created.case_id;
+      await refreshCases();
+      setStatus(`Seeded ${created.title}`);
+    }
+
     async function createManualCase() {
       const evidenceContent = document.getElementById("manualEvidenceContent").value.trim();
       if (!evidenceContent) {
@@ -646,6 +657,9 @@ def render_dashboard() -> str:
 
     document.getElementById("importButton").addEventListener("click", () => {
       importNhtsaCase().catch((error) => setStatus(error.message, true));
+    });
+    document.getElementById("seedDemoButton").addEventListener("click", () => {
+      seedDemoCase().catch((error) => setStatus(error.message, true));
     });
     document.getElementById("refreshButton").addEventListener("click", () => {
       refreshCases().catch((error) => setStatus(error.message, true));
