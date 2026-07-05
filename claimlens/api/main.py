@@ -21,6 +21,7 @@ from claimlens.demo_cases import build_demo_case
 from claimlens.evaluators.harness import load_evaluation_dataset, run_evaluation
 
 DEFAULT_CASE_DB_PATH = Path("var/claimlens_cases.sqlite3")
+CASE_BUNDLE_SCHEMA_VERSION = "claimlens.case_bundle.v1"
 
 app = FastAPI(title="ClaimLens", version="0.1.0")
 
@@ -51,6 +52,15 @@ class CaseCreateRequest(BaseModel):
     title: str
     claim_type: str = "auto_collision"
     source: str = "manual"
+    evidence: list[EvidencePayload]
+
+
+class CaseBundlePayload(BaseModel):
+    schema_version: str = CASE_BUNDLE_SCHEMA_VERSION
+    exported_case_id: str | None = None
+    title: str
+    claim_type: str
+    source: str
     evidence: list[EvidencePayload]
 
 
@@ -129,6 +139,46 @@ def get_case(case_id: str) -> CaseRecord:
         return case_store.get_case(case_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/cases/{case_id}/bundle.json", response_model=CaseBundlePayload)
+def export_case_bundle(case_id: str) -> CaseBundlePayload:
+    try:
+        record = case_store.get_case(case_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return CaseBundlePayload(
+        exported_case_id=record.case_id,
+        title=record.title,
+        claim_type=record.claim_type,
+        source=record.source,
+        evidence=[
+            EvidencePayload(
+                id=item.id,
+                type=item.type,
+                title=item.title,
+                content=item.content,
+                metadata=item.metadata,
+            )
+            for item in record.evidence
+        ],
+    )
+
+
+@app.post("/cases/import/bundle", response_model=CaseRecord)
+def import_case_bundle(request: CaseBundlePayload) -> CaseRecord:
+    if request.schema_version != CASE_BUNDLE_SCHEMA_VERSION:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported case bundle schema: {request.schema_version}",
+        )
+    evidence = [EvidenceItem(**item.model_dump()) for item in request.evidence]
+    return case_store.create_case(
+        title=request.title,
+        claim_type=request.claim_type,
+        evidence=evidence,
+        source=request.source,
+    )
 
 
 @app.delete("/cases/{case_id}", response_model=CaseDeleteResponse)

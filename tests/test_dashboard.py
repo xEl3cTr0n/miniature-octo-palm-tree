@@ -20,6 +20,7 @@ def test_dashboard_root_serves_reviewer_console() -> None:
     assert "Reviewer Report" in html
     assert "Delete Case" in html
     assert "Export Markdown" in html
+    assert "Case JSON Bundle" in html
     assert "Evidence Inspector" in html
     assert "Evaluation Metrics" in html
     assert "Run Evals" in html
@@ -40,6 +41,8 @@ def test_dashboard_targets_case_workspace_endpoints() -> None:
     assert 'requestJson(`/cases/${selectedCaseId}/ask`' in html
     assert 'requestJson(`/cases/${selectedCaseId}/report`' in html
     assert 'window.open(`/cases/${selectedCaseId}/report.md`' in html
+    assert 'requestJson(`/cases/${selectedCaseId}/bundle.json`' in html
+    assert 'requestJson("/cases/import/bundle", {' in html
     assert 'requestJson("/evals/demo")' in html
 
 
@@ -62,6 +65,18 @@ def test_dashboard_exposes_demo_case_seed_action() -> None:
 
     assert 'id="seedDemoButton"' in html
     assert "async function seedDemoCase()" in html
+
+
+def test_dashboard_exposes_case_bundle_controls() -> None:
+    client = TestClient(main.app)
+
+    html = client.get("/").text
+
+    assert 'id="caseBundleJson"' in html
+    assert 'id="exportBundleButton"' in html
+    assert 'id="importBundleButton"' in html
+    assert "async function exportCaseBundle()" in html
+    assert "async function importCaseBundle()" in html
 
 
 def test_dashboard_exposes_evidence_inspector() -> None:

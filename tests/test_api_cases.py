@@ -181,3 +181,36 @@ def test_case_api_seeds_deterministic_demo_case() -> None:
 
     assert list_response.status_code == 200
     assert list_response.json()[0]["case_id"] == payload["case_id"]
+
+
+def test_case_api_exports_and_imports_json_case_bundle() -> None:
+    client = fresh_client()
+    created = client.post("/cases/demo").json()
+
+    export_response = client.get(f"/cases/{created['case_id']}/bundle.json")
+
+    assert export_response.status_code == 200
+    bundle = export_response.json()
+    assert bundle["schema_version"] == "claimlens.case_bundle.v1"
+    assert bundle["exported_case_id"] == created["case_id"]
+    assert bundle["title"] == created["title"]
+    assert bundle["claim_type"] == "vehicle_safety"
+    assert bundle["source"] == "demo_fixture"
+    assert [item["id"] for item in bundle["evidence"]] == [
+        "demo-adjuster-note",
+        "demo-nhtsa-recall-20v771000",
+        "demo-owner-complaint",
+    ]
+
+    import_response = client.post("/cases/import/bundle", json=bundle)
+
+    assert import_response.status_code == 200
+    imported = import_response.json()
+    assert imported["case_id"] != created["case_id"]
+    assert imported["title"] == created["title"]
+    assert imported["source"] == "demo_fixture"
+    assert imported["evidence_count"] == 3
+    assert [case["case_id"] for case in client.get("/cases").json()] == [
+        imported["case_id"],
+        created["case_id"],
+    ]

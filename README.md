@@ -111,6 +111,20 @@ Export the same report as Markdown:
 curl http://127.0.0.1:8000/cases/{case_id}/report.md
 ```
 
+Export a portable JSON case bundle:
+
+```bash
+curl http://127.0.0.1:8000/cases/{case_id}/bundle.json
+```
+
+Import a portable JSON case bundle:
+
+```bash
+curl -X POST http://127.0.0.1:8000/cases/import/bundle \
+  -H 'Content-Type: application/json' \
+  --data @case-bundle.json
+```
+
 ## Real Data Demo: NHTSA
 
 ClaimLens can pull public vehicle complaint and recall data from NHTSA and convert it into citable evidence records.

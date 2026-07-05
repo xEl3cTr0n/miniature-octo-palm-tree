@@ -303,6 +303,17 @@ def render_dashboard() -> str:
           <div class="case-list" id="caseList">
             <p class="empty">No cases loaded.</p>
           </div>
+          <div class="panel-header" style="margin: 4px -14px -2px;">
+            <h2>Case JSON Bundle</h2>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button class="secondary" id="exportBundleButton" type="button">Export JSON</button>
+              <button class="secondary" id="importBundleButton" type="button">Import JSON</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="caseBundleJson">Bundle JSON</label>
+            <textarea id="caseBundleJson" placeholder="Export a selected case or paste a ClaimLens case bundle."></textarea>
+          </div>
         </div>
       </section>
       <section class="stack">
@@ -390,6 +401,7 @@ def render_dashboard() -> str:
     const caseEvidenceEl = document.getElementById("caseEvidence");
     const evalMetricsEl = document.getElementById("evalMetrics");
     const evalResultsEl = document.getElementById("evalResults");
+    const caseBundleJsonEl = document.getElementById("caseBundleJson");
 
     function setStatus(message, isError = false) {
       statusEl.textContent = message;
@@ -648,6 +660,41 @@ def render_dashboard() -> str:
       setStatus("Markdown report opened");
     }
 
+    async function exportCaseBundle() {
+      if (!selectedCaseId) {
+        setStatus("Import or select a case first.", true);
+        return;
+      }
+      setStatus("Exporting case bundle...");
+      const payload = await requestJson(`/cases/${selectedCaseId}/bundle.json`);
+      caseBundleJsonEl.value = JSON.stringify(payload, null, 2);
+      setStatus("Case bundle ready");
+    }
+
+    async function importCaseBundle() {
+      const rawBundle = caseBundleJsonEl.value.trim();
+      if (!rawBundle) {
+        setStatus("Paste a case bundle to import.", true);
+        return;
+      }
+      let payload;
+      try {
+        payload = JSON.parse(rawBundle);
+      } catch (error) {
+        setStatus("Case bundle must be valid JSON.", true);
+        return;
+      }
+      setStatus("Importing case bundle...");
+      const created = await requestJson("/cases/import/bundle", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload)
+      });
+      selectedCaseId = created.case_id;
+      await refreshCases();
+      setStatus(`Imported ${created.title}`);
+    }
+
     async function runEvaluations() {
       setStatus("Running evaluations...");
       const payload = await requestJson("/evals/demo");
@@ -678,6 +725,12 @@ def render_dashboard() -> str:
     });
     document.getElementById("exportMarkdownButton").addEventListener("click", () => {
       exportMarkdownReport();
+    });
+    document.getElementById("exportBundleButton").addEventListener("click", () => {
+      exportCaseBundle().catch((error) => setStatus(error.message, true));
+    });
+    document.getElementById("importBundleButton").addEventListener("click", () => {
+      importCaseBundle().catch((error) => setStatus(error.message, true));
     });
     document.getElementById("evalButton").addEventListener("click", () => {
       runEvaluations().catch((error) => setStatus(error.message, true));
