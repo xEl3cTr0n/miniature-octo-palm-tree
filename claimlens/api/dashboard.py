@@ -260,6 +260,26 @@ def render_dashboard() -> str:
           </div>
           <button id="importButton" type="button">Import Case</button>
           <div class="panel-header" style="margin: 4px -14px -2px;">
+            <h2>Manual Evidence Case</h2>
+          </div>
+          <div class="field">
+            <label for="manualTitle">Case Title</label>
+            <input id="manualTitle" value="Manual evidence review" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="manualClaimType">Claim Type</label>
+            <input id="manualClaimType" value="auto_collision" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="manualEvidenceTitle">Evidence Title</label>
+            <input id="manualEvidenceTitle" value="Adjuster note" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="manualEvidenceContent">Evidence Text</label>
+            <textarea id="manualEvidenceContent">Rear bumper damage is visible in the uploaded photo and repair estimate.</textarea>
+          </div>
+          <button id="manualCreateButton" type="button">Create Manual Case</button>
+          <div class="panel-header" style="margin: 4px -14px -2px;">
             <h2>Case Queue</h2>
             <button class="secondary" id="refreshButton" type="button">Refresh</button>
           </div>
@@ -356,13 +376,22 @@ def render_dashboard() -> str:
       return response.json();
     }
 
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
     function renderCitations(citations) {
       if (!citations || citations.length === 0) {
         citationsEl.innerHTML = '<p class="empty">No citations returned.</p>';
         return;
       }
       citationsEl.innerHTML = citations
-        .map((citation) => `<div class="citation">${citation}</div>`)
+        .map((citation) => `<div class="citation">${escapeHtml(citation)}</div>`)
         .join("");
     }
 
@@ -406,7 +435,7 @@ def render_dashboard() -> str:
       evalResultsEl.innerHTML = payload.results.map((item) => `
         <div class="eval-row">
           <div>
-            <strong>${item.id}</strong>
+            <strong>${escapeHtml(item.id)}</strong>
             <div class="meta">coverage ${formatPercent(item.citation_coverage)} · expected recall ${formatPercent(item.expected_citation_recall)}</div>
           </div>
           <span class="badge ${item.passed ? "pass" : "fail"}">${item.passed ? "PASS" : "FAIL"}</span>
@@ -422,8 +451,8 @@ def render_dashboard() -> str:
       }
       caseListEl.innerHTML = cases.map((item) => `
         <button type="button" class="case-row ${item.case_id === selectedCaseId ? "active" : ""}" data-case-id="${item.case_id}">
-          <strong>${item.title}</strong>
-          <div class="meta">${item.claim_type} · ${item.evidence_count} evidence items · ${item.source}</div>
+          <strong>${escapeHtml(item.title)}</strong>
+          <div class="meta">${escapeHtml(item.claim_type)} · ${item.evidence_count} evidence items · ${escapeHtml(item.source)}</div>
         </button>
       `).join("");
       caseListEl.querySelectorAll("[data-case-id]").forEach((button) => {
@@ -453,6 +482,37 @@ def render_dashboard() -> str:
       selectedCaseId = created.case_id;
       await refreshCases();
       setStatus(`Imported ${created.title}`);
+    }
+
+    async function createManualCase() {
+      const evidenceContent = document.getElementById("manualEvidenceContent").value.trim();
+      if (!evidenceContent) {
+        setStatus("Manual case needs evidence text.", true);
+        return;
+      }
+      setStatus("Creating manual case...");
+      const payload = {
+        title: document.getElementById("manualTitle").value.trim() || "Manual evidence review",
+        claim_type: document.getElementById("manualClaimType").value.trim() || "auto_collision",
+        source: "manual_dashboard",
+        evidence: [
+          {
+            id: `manual-${Date.now()}`,
+            type: "text",
+            title: document.getElementById("manualEvidenceTitle").value.trim() || "Manual evidence note",
+            content: evidenceContent,
+            metadata: {source: "manual_dashboard"}
+          }
+        ]
+      };
+      const created = await requestJson("/cases", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload)
+      });
+      selectedCaseId = created.case_id;
+      await refreshCases();
+      setStatus(`Created ${created.title}`);
     }
 
     async function askSelectedCase() {
@@ -493,6 +553,9 @@ def render_dashboard() -> str:
     });
     document.getElementById("refreshButton").addEventListener("click", () => {
       refreshCases().catch((error) => setStatus(error.message, true));
+    });
+    document.getElementById("manualCreateButton").addEventListener("click", () => {
+      createManualCase().catch((error) => setStatus(error.message, true));
     });
     document.getElementById("askButton").addEventListener("click", () => {
       askSelectedCase().catch((error) => setStatus(error.message, true));
