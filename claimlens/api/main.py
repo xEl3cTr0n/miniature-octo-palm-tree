@@ -9,7 +9,13 @@ from fastapi.responses import HTMLResponse, Response
 from pydantic import BaseModel, Field
 
 from claimlens.api.dashboard import render_dashboard
-from claimlens.core.cases import CaseRecord, CaseReport, CaseStore, CaseSummary
+from claimlens.core.cases import (
+    CaseActivityEvent,
+    CaseRecord,
+    CaseReport,
+    CaseStore,
+    CaseSummary,
+)
 from claimlens.core.models import ClaimAnswer, EvidenceItem, EvidenceType
 from claimlens.core.pipeline import answer_claim
 from claimlens.data_sources.nhtsa import (
@@ -109,28 +115,45 @@ def ask(request: AskRequest) -> ClaimAnswer:
 @app.post("/cases", response_model=CaseRecord)
 def create_case(request: CaseCreateRequest) -> CaseRecord:
     evidence = [EvidenceItem(**item.model_dump()) for item in request.evidence]
-    return case_store.create_case(
+    record = case_store.create_case(
         title=request.title,
         claim_type=request.claim_type,
         evidence=evidence,
         source=request.source,
     )
+    case_store.record_activity(
+        case_id=record.case_id,
+        event_type="manual_case_created",
+        summary=f"Created {record.title} from {record.source} evidence.",
+    )
+    return record
 
 
 @app.post("/cases/demo", response_model=CaseRecord)
 def seed_demo_case() -> CaseRecord:
     demo_case = build_demo_case()
-    return case_store.create_case(
+    record = case_store.create_case(
         title=demo_case.title,
         claim_type=demo_case.claim_type,
         evidence=demo_case.evidence,
         source=demo_case.source,
     )
+    case_store.record_activity(
+        case_id=record.case_id,
+        event_type="demo_case_seeded",
+        summary=f"Seeded deterministic demo case {record.title}.",
+    )
+    return record
 
 
 @app.get("/cases", response_model=list[CaseSummary])
 def list_cases() -> list[CaseSummary]:
     return case_store.list_cases()
+
+
+@app.get("/activity", response_model=list[CaseActivityEvent])
+def list_activity() -> list[CaseActivityEvent]:
+    return case_store.list_activity()
 
 
 @app.get("/cases/{case_id}", response_model=CaseRecord)
@@ -147,6 +170,11 @@ def export_case_bundle(case_id: str) -> CaseBundlePayload:
         record = case_store.get_case(case_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    case_store.record_activity(
+        case_id=record.case_id,
+        event_type="bundle_exported",
+        summary=f"Exported portable JSON bundle for {record.title}.",
+    )
     return CaseBundlePayload(
         exported_case_id=record.case_id,
         title=record.title,
@@ -173,45 +201,80 @@ def import_case_bundle(request: CaseBundlePayload) -> CaseRecord:
             detail=f"Unsupported case bundle schema: {request.schema_version}",
         )
     evidence = [EvidenceItem(**item.model_dump()) for item in request.evidence]
-    return case_store.create_case(
+    record = case_store.create_case(
         title=request.title,
         claim_type=request.claim_type,
         evidence=evidence,
         source=request.source,
     )
+    case_store.record_activity(
+        case_id=record.case_id,
+        event_type="bundle_imported",
+        summary=f"Imported portable JSON bundle for {record.title}.",
+    )
+    return record
+
+
+@app.get("/cases/{case_id}/activity", response_model=list[CaseActivityEvent])
+def case_activity(case_id: str) -> list[CaseActivityEvent]:
+    return case_store.list_activity(case_id=case_id)
 
 
 @app.delete("/cases/{case_id}", response_model=CaseDeleteResponse)
 def delete_case(case_id: str) -> CaseDeleteResponse:
     try:
+        record = case_store.get_case(case_id)
         case_store.delete_case(case_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    case_store.record_activity(
+        case_id=case_id,
+        event_type="case_deleted",
+        summary=f"Deleted {record.title}.",
+    )
     return CaseDeleteResponse(case_id=case_id, deleted=True)
 
 
 @app.post("/cases/{case_id}/ask", response_model=ClaimAnswer)
 def ask_case(case_id: str, request: StoredCaseAskRequest) -> ClaimAnswer:
     try:
-        return case_store.ask_case(case_id, request.question)
+        answer = case_store.ask_case(case_id, request.question)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    case_store.record_activity(
+        case_id=case_id,
+        event_type="question_answered",
+        summary="Answered reviewer question against stored evidence.",
+    )
+    return answer
 
 
 @app.get("/cases/{case_id}/report", response_model=CaseReport)
 def case_report(case_id: str) -> CaseReport:
     try:
-        return case_store.build_report(case_id)
+        report = case_store.build_report(case_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    case_store.record_activity(
+        case_id=case_id,
+        event_type="report_generated",
+        summary=f"Generated reviewer report for {report.title}.",
+    )
+    return report
 
 
 @app.get("/cases/{case_id}/report.md")
 def case_report_markdown(case_id: str) -> Response:
     try:
         markdown = case_store.build_report_markdown(case_id)
+        record = case_store.get_case(case_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    case_store.record_activity(
+        case_id=case_id,
+        event_type="report_markdown_exported",
+        summary=f"Exported Markdown report for {record.title}.",
+    )
     return Response(content=markdown, media_type="text/markdown")
 
 
@@ -274,9 +337,15 @@ def import_nhtsa_case(request: NHTSACaseImportRequest) -> CaseRecord:
         )
     except NHTSADataSourceError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
-    return case_store.create_case(
+    record = case_store.create_case(
         title=f"{request.year} {request.make} {request.model} NHTSA safety review",
         claim_type="vehicle_safety",
         evidence=evidence,
         source="nhtsa",
     )
+    case_store.record_activity(
+        case_id=record.case_id,
+        event_type="nhtsa_case_imported",
+        summary=f"Imported NHTSA evidence for {record.title}.",
+    )
+    return record

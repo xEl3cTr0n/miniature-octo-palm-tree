@@ -129,3 +129,28 @@ def test_case_store_exports_reviewer_report_markdown() -> None:
     assert "## Citation-Backed Answer" in markdown
     assert "- NHTSA recall 20V771000#chunk-1" in markdown
     assert "## Reviewer Next Steps" in markdown
+
+
+def test_case_store_records_and_persists_activity_events(tmp_path) -> None:
+    database_path = tmp_path / "cases.sqlite3"
+    store = CaseStore(database_path=database_path)
+    record = store.create_case(
+        title="2020 Honda Accord warning lights",
+        claim_type="vehicle_safety",
+        evidence=sample_evidence(),
+        source="nhtsa",
+    )
+
+    event = store.record_activity(
+        case_id=record.case_id,
+        event_type="case_created",
+        summary="Created test case",
+    )
+    reopened_store = CaseStore(database_path=database_path)
+
+    assert event.event_id.startswith("evt-")
+    assert event.case_id == record.case_id
+    assert event.event_type == "case_created"
+    assert event.summary == "Created test case"
+    assert reopened_store.list_activity()[0] == event
+    assert reopened_store.list_activity(case_id=record.case_id)[0] == event

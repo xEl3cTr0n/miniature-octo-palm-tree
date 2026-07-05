@@ -58,6 +58,16 @@ def test_case_api_creates_lists_asks_and_reports() -> None:
     assert "# 2020 Honda Accord warning lights" in markdown_response.text
     assert "## Citation-Backed Answer" in markdown_response.text
 
+    activity_response = client.get(f"/cases/{created['case_id']}/activity")
+    assert activity_response.status_code == 200
+    event_types = [event["event_type"] for event in activity_response.json()]
+    assert event_types == [
+        "report_markdown_exported",
+        "report_generated",
+        "question_answered",
+        "manual_case_created",
+    ]
+
 
 def test_case_api_deletes_case() -> None:
     client = fresh_client()
@@ -86,6 +96,9 @@ def test_case_api_deletes_case() -> None:
     assert delete_response.json() == {"case_id": case_id, "deleted": True}
     assert client.get(f"/cases/{case_id}").status_code == 404
     assert client.get("/cases").json() == []
+    assert client.get(f"/cases/{case_id}/activity").json()[0]["event_type"] == (
+        "case_deleted"
+    )
 
 
 def test_case_api_uses_configured_database_between_store_instances(
@@ -158,6 +171,9 @@ def test_case_api_imports_nhtsa_case_with_mocked_evidence(monkeypatch) -> None:
     assert payload["claim_type"] == "vehicle_safety"
     assert payload["source"] == "nhtsa"
     assert payload["evidence_count"] == 1
+    assert client.get(f"/cases/{payload['case_id']}/activity").json()[0][
+        "event_type"
+    ] == "nhtsa_case_imported"
 
 
 def test_case_api_seeds_deterministic_demo_case() -> None:
@@ -181,6 +197,9 @@ def test_case_api_seeds_deterministic_demo_case() -> None:
 
     assert list_response.status_code == 200
     assert list_response.json()[0]["case_id"] == payload["case_id"]
+    assert client.get(f"/cases/{payload['case_id']}/activity").json()[0][
+        "event_type"
+    ] == "demo_case_seeded"
 
 
 def test_case_api_exports_and_imports_json_case_bundle() -> None:
@@ -213,4 +232,29 @@ def test_case_api_exports_and_imports_json_case_bundle() -> None:
     assert [case["case_id"] for case in client.get("/cases").json()] == [
         imported["case_id"],
         created["case_id"],
+    ]
+    assert client.get(f"/cases/{created['case_id']}/activity").json()[0][
+        "event_type"
+    ] == "bundle_exported"
+    assert client.get(f"/cases/{imported['case_id']}/activity").json()[0][
+        "event_type"
+    ] == "bundle_imported"
+
+
+def test_case_api_lists_recent_activity_across_cases() -> None:
+    client = fresh_client()
+    first = client.post("/cases/demo").json()
+    second = client.post("/cases/demo").json()
+
+    response = client.get("/activity")
+
+    assert response.status_code == 200
+    events = response.json()
+    assert [event["case_id"] for event in events[:2]] == [
+        second["case_id"],
+        first["case_id"],
+    ]
+    assert [event["event_type"] for event in events[:2]] == [
+        "demo_case_seeded",
+        "demo_case_seeded",
     ]

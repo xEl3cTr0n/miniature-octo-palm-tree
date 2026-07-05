@@ -21,6 +21,7 @@ def test_dashboard_root_serves_reviewer_console() -> None:
     assert "Delete Case" in html
     assert "Export Markdown" in html
     assert "Case JSON Bundle" in html
+    assert "Activity Timeline" in html
     assert "Evidence Inspector" in html
     assert "Evaluation Metrics" in html
     assert "Run Evals" in html
@@ -43,6 +44,7 @@ def test_dashboard_targets_case_workspace_endpoints() -> None:
     assert 'window.open(`/cases/${selectedCaseId}/report.md`' in html
     assert 'requestJson(`/cases/${selectedCaseId}/bundle.json`' in html
     assert 'requestJson("/cases/import/bundle", {' in html
+    assert 'requestJson("/activity")' in html
     assert 'requestJson("/evals/demo")' in html
 
 
@@ -77,6 +79,16 @@ def test_dashboard_exposes_case_bundle_controls() -> None:
     assert 'id="importBundleButton"' in html
     assert "async function exportCaseBundle()" in html
     assert "async function importCaseBundle()" in html
+
+
+def test_dashboard_exposes_activity_timeline() -> None:
+    client = TestClient(main.app)
+
+    html = client.get("/").text
+
+    assert 'id="activityTimeline"' in html
+    assert "async function refreshActivity()" in html
+    assert "renderActivity(payload)" in html
 
 
 def test_dashboard_exposes_evidence_inspector() -> None:

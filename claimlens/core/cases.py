@@ -51,6 +51,17 @@ class CaseReport:
     next_steps: list[str]
 
 
+@dataclass(frozen=True)
+class CaseActivityEvent:
+    event_id: str
+    case_id: str
+    event_type: str
+    summary: str
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+
+
 class CaseStore:
     def __init__(self, database_path: str | Path = ":memory:") -> None:
         self.database_path = self._prepare_database_path(database_path)
@@ -76,6 +87,18 @@ class CaseStore:
                     source TEXT NOT NULL,
                     created_at TEXT NOT NULL,
                     evidence_json TEXT NOT NULL
+                )
+                """
+            )
+            self._connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS case_activity_events (
+                    sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+                    event_id TEXT NOT NULL UNIQUE,
+                    case_id TEXT NOT NULL,
+                    event_type TEXT NOT NULL,
+                    summary TEXT NOT NULL,
+                    created_at TEXT NOT NULL
                 )
                 """
             )
@@ -155,6 +178,70 @@ class CaseStore:
             )
         if cursor.rowcount == 0:
             raise KeyError(f"Case not found: {case_id}")
+
+    def record_activity(
+        self,
+        *,
+        case_id: str,
+        event_type: str,
+        summary: str,
+    ) -> CaseActivityEvent:
+        event = CaseActivityEvent(
+            event_id=f"evt-{uuid4().hex[:12]}",
+            case_id=case_id,
+            event_type=event_type,
+            summary=summary,
+        )
+        with self._connection:
+            self._connection.execute(
+                """
+                INSERT INTO case_activity_events (
+                    event_id,
+                    case_id,
+                    event_type,
+                    summary,
+                    created_at
+                )
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    event.event_id,
+                    event.case_id,
+                    event.event_type,
+                    event.summary,
+                    event.created_at,
+                ),
+            )
+        return event
+
+    def list_activity(
+        self,
+        *,
+        case_id: str | None = None,
+        limit: int = 50,
+    ) -> list[CaseActivityEvent]:
+        if case_id is None:
+            rows = self._connection.execute(
+                """
+                SELECT event_id, case_id, event_type, summary, created_at
+                FROM case_activity_events
+                ORDER BY sequence DESC
+                LIMIT ?
+                """,
+                (limit,),
+            ).fetchall()
+        else:
+            rows = self._connection.execute(
+                """
+                SELECT event_id, case_id, event_type, summary, created_at
+                FROM case_activity_events
+                WHERE case_id = ?
+                ORDER BY sequence DESC
+                LIMIT ?
+                """,
+                (case_id, limit),
+            ).fetchall()
+        return [self._activity_from_row(row) for row in rows]
 
     def ask_case(self, case_id: str, question: str) -> ClaimAnswer:
         record = self.get_case(case_id)
@@ -254,6 +341,15 @@ class CaseStore:
             evidence=evidence,
             evidence_count=len(evidence),
             source=row["source"],
+            created_at=row["created_at"],
+        )
+
+    def _activity_from_row(self, row: sqlite3.Row) -> CaseActivityEvent:
+        return CaseActivityEvent(
+            event_id=row["event_id"],
+            case_id=row["case_id"],
+            event_type=row["event_type"],
+            summary=row["summary"],
             created_at=row["created_at"],
         )
 

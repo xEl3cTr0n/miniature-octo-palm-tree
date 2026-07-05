@@ -364,6 +364,15 @@ def render_dashboard() -> str:
         </section>
         <section class="panel">
           <div class="panel-header">
+            <h2>Activity Timeline</h2>
+            <button class="secondary" id="activityButton" type="button">Refresh</button>
+          </div>
+          <div class="panel-body stack" id="activityTimeline">
+            <p class="empty">No activity yet.</p>
+          </div>
+        </section>
+        <section class="panel">
+          <div class="panel-header">
             <h2>Evaluation Metrics</h2>
             <button class="secondary" id="evalButton" type="button">Run Evals</button>
           </div>
@@ -402,6 +411,7 @@ def render_dashboard() -> str:
     const evalMetricsEl = document.getElementById("evalMetrics");
     const evalResultsEl = document.getElementById("evalResults");
     const caseBundleJsonEl = document.getElementById("caseBundleJson");
+    const activityTimelineEl = document.getElementById("activityTimeline");
 
     function setStatus(message, isError = false) {
       statusEl.textContent = message;
@@ -515,6 +525,27 @@ def render_dashboard() -> str:
       `).join("");
     }
 
+    function renderActivity(payload) {
+      if (!payload || payload.length === 0) {
+        activityTimelineEl.innerHTML = '<p class="empty">No activity yet.</p>';
+        return;
+      }
+      activityTimelineEl.innerHTML = payload.map((item) => `
+        <div class="evidence-item">
+          <div>
+            <strong>${escapeHtml(item.event_type.replaceAll("_", " "))}</strong>
+            <div class="meta">${escapeHtml(item.case_id)} · ${escapeHtml(item.created_at)}</div>
+          </div>
+          <div class="evidence-snippet">${escapeHtml(item.summary)}</div>
+        </div>
+      `).join("");
+    }
+
+    async function refreshActivity() {
+      const payload = await requestJson("/activity");
+      renderActivity(payload);
+    }
+
     async function refreshCases() {
       const cases = await requestJson("/cases");
       if (cases.length === 0) {
@@ -565,6 +596,7 @@ def render_dashboard() -> str:
       });
       selectedCaseId = created.case_id;
       await refreshCases();
+      await refreshActivity();
       setStatus(`Imported ${created.title}`);
     }
 
@@ -575,6 +607,7 @@ def render_dashboard() -> str:
       });
       selectedCaseId = created.case_id;
       await refreshCases();
+      await refreshActivity();
       setStatus(`Seeded ${created.title}`);
     }
 
@@ -606,6 +639,7 @@ def render_dashboard() -> str:
       });
       selectedCaseId = created.case_id;
       await refreshCases();
+      await refreshActivity();
       setStatus(`Created ${created.title}`);
     }
 
@@ -622,6 +656,7 @@ def render_dashboard() -> str:
       selectedCaseId = null;
       clearSelectedCasePanels();
       await refreshCases();
+      await refreshActivity();
       setStatus(`Deleted ${deletingCaseId}`);
     }
 
@@ -637,6 +672,7 @@ def render_dashboard() -> str:
         body: JSON.stringify({question: document.getElementById("question").value})
       });
       renderAnswer(payload);
+      await refreshActivity();
       setStatus("Answer ready");
     }
 
@@ -648,6 +684,7 @@ def render_dashboard() -> str:
       setStatus("Generating report...");
       const payload = await requestJson(`/cases/${selectedCaseId}/report`);
       renderReport(payload);
+      await refreshActivity();
       setStatus("Report ready");
     }
 
@@ -668,6 +705,7 @@ def render_dashboard() -> str:
       setStatus("Exporting case bundle...");
       const payload = await requestJson(`/cases/${selectedCaseId}/bundle.json`);
       caseBundleJsonEl.value = JSON.stringify(payload, null, 2);
+      await refreshActivity();
       setStatus("Case bundle ready");
     }
 
@@ -692,6 +730,7 @@ def render_dashboard() -> str:
       });
       selectedCaseId = created.case_id;
       await refreshCases();
+      await refreshActivity();
       setStatus(`Imported ${created.title}`);
     }
 
@@ -732,11 +771,15 @@ def render_dashboard() -> str:
     document.getElementById("importBundleButton").addEventListener("click", () => {
       importCaseBundle().catch((error) => setStatus(error.message, true));
     });
+    document.getElementById("activityButton").addEventListener("click", () => {
+      refreshActivity().catch((error) => setStatus(error.message, true));
+    });
     document.getElementById("evalButton").addEventListener("click", () => {
       runEvaluations().catch((error) => setStatus(error.message, true));
     });
 
     refreshCases().catch((error) => setStatus(error.message, true));
+    refreshActivity().catch((error) => setStatus(error.message, true));
   </script>
 </body>
 </html>"""

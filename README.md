@@ -125,6 +125,18 @@ curl -X POST http://127.0.0.1:8000/cases/import/bundle \
   --data @case-bundle.json
 ```
 
+List recent reviewer activity across cases:
+
+```bash
+curl http://127.0.0.1:8000/activity
+```
+
+List activity for one case:
+
+```bash
+curl http://127.0.0.1:8000/cases/{case_id}/activity
+```
+
 ## Real Data Demo: NHTSA
 
 ClaimLens can pull public vehicle complaint and recall data from NHTSA and convert it into citable evidence records.
