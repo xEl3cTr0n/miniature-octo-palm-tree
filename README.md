@@ -22,7 +22,8 @@ This repository starts with a deterministic Python/FastAPI core that can be expa
 - `claimlens/core/retrieval.py` provides a stable retrieval interface backed by a simple lexical retriever.
 - `claimlens/agents/checklists.py` checks missing evidence requirements for claim workflows.
 - `claimlens/evaluators/faithfulness.py` provides a CI-friendly citation coverage metric.
-- `claimlens/api/main.py` exposes health and question-answering endpoints.
+- `claimlens/core/cases.py` stores review cases in SQLite and generates reviewer reports.
+- `claimlens/api/main.py` exposes the reviewer dashboard, health, case, NHTSA import, and question-answering endpoints.
 
 ## Local Development
 
@@ -33,6 +34,8 @@ python -m pip install -e '.[dev]'
 pytest
 uvicorn claimlens.api.main:app --reload
 ```
+
+Open `http://127.0.0.1:8000/` for the reviewer dashboard. By default, cases persist to `var/claimlens_cases.sqlite3`; set `CLAIMLENS_CASE_DB=/path/to/cases.sqlite3` to choose a different SQLite database.
 
 ## Example API Request
 

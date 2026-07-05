@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import os
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
@@ -14,8 +17,17 @@ from claimlens.data_sources.nhtsa import (
     fetch_vehicle_evidence,
 )
 
+DEFAULT_CASE_DB_PATH = Path("var/claimlens_cases.sqlite3")
+
 app = FastAPI(title="ClaimLens", version="0.1.0")
-case_store = CaseStore()
+
+
+def build_case_store() -> CaseStore:
+    database_path = os.getenv("CLAIMLENS_CASE_DB")
+    return CaseStore(database_path=database_path or DEFAULT_CASE_DB_PATH)
+
+
+case_store = build_case_store()
 
 
 class EvidencePayload(BaseModel):

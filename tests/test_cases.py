@@ -42,6 +42,23 @@ def test_case_store_creates_and_lists_case_summaries() -> None:
     assert summaries[0].evidence_count == 2
 
 
+def test_case_store_persists_cases_between_instances(tmp_path) -> None:
+    database_path = tmp_path / "cases.sqlite3"
+    first_store = CaseStore(database_path=database_path)
+    record = first_store.create_case(
+        title="2020 Honda Accord warning lights",
+        claim_type="vehicle_safety",
+        evidence=sample_evidence(),
+        source="nhtsa",
+    )
+
+    reopened_store = CaseStore(database_path=database_path)
+    reopened_record = reopened_store.get_case(record.case_id)
+
+    assert reopened_record == record
+    assert reopened_store.list_cases()[0].case_id == record.case_id
+
+
 def test_case_store_answers_questions_from_stored_evidence() -> None:
     store = CaseStore()
     record = store.create_case(

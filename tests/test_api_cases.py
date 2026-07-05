@@ -53,6 +53,40 @@ def test_case_api_creates_lists_asks_and_reports() -> None:
     assert report["answer"]["confidence"] == 0.72
 
 
+def test_case_api_uses_configured_database_between_store_instances(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setenv("CLAIMLENS_CASE_DB", str(tmp_path / "api-cases.sqlite3"))
+    main.case_store = main.build_case_store()
+    client = TestClient(main.app)
+
+    create_response = client.post(
+        "/cases",
+        json={
+            "title": "Persistent Honda Accord review",
+            "claim_type": "vehicle_safety",
+            "source": "manual",
+            "evidence": [
+                {
+                    "id": "recall-1",
+                    "type": "text",
+                    "title": "NHTSA recall 20V771000",
+                    "content": "A BCM software issue may affect rear camera behavior.",
+                    "metadata": {"source": "nhtsa_recalls"},
+                }
+            ],
+        },
+    )
+    created = create_response.json()
+
+    main.case_store = main.build_case_store()
+    reopened_client = TestClient(main.app)
+    list_response = reopened_client.get("/cases")
+
+    assert list_response.status_code == 200
+    assert list_response.json()[0]["case_id"] == created["case_id"]
+
+
 def test_case_api_imports_nhtsa_case_with_mocked_evidence(monkeypatch) -> None:
     client = fresh_client()
 
