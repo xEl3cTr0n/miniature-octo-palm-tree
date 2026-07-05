@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
+from claimlens.api.dashboard import render_dashboard
 from claimlens.core.cases import CaseRecord, CaseReport, CaseStore, CaseSummary
 from claimlens.core.models import ClaimAnswer, EvidenceItem, EvidenceType
 from claimlens.core.pipeline import answer_claim
@@ -61,6 +63,11 @@ class NHTSACaseImportRequest(BaseModel):
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/", response_class=HTMLResponse)
+def dashboard() -> str:
+    return render_dashboard()
 
 
 @app.post("/ask", response_model=ClaimAnswer)
