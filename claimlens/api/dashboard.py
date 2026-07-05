@@ -169,6 +169,54 @@ def render_dashboard() -> str:
       font-size: 13px;
       line-height: 1.4;
     }
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .metric {
+      min-height: 72px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+    }
+    .metric strong {
+      display: block;
+      font-size: 20px;
+      line-height: 1.2;
+    }
+    .metric span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .eval-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: start;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+    }
+    .badge {
+      min-width: 52px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .badge.pass {
+      color: var(--accent-strong);
+      background: #dff5ef;
+    }
+    .badge.fail {
+      color: var(--danger);
+      background: #fde8e6;
+    }
     .empty {
       color: var(--muted);
       font-size: 14px;
@@ -176,7 +224,7 @@ def render_dashboard() -> str:
     .error { color: var(--danger); }
     .warn { color: var(--warn); }
     @media (max-width: 900px) {
-      .workspace, .content-grid { grid-template-columns: 1fr; }
+      .workspace, .content-grid, .metrics-grid { grid-template-columns: 1fr; }
       .topbar { align-items: flex-start; flex-direction: column; }
     }
   </style>
@@ -255,6 +303,31 @@ def render_dashboard() -> str:
             </div>
           </section>
         </section>
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Evaluation Metrics</h2>
+            <button class="secondary" id="evalButton" type="button">Run Evals</button>
+          </div>
+          <div class="panel-body stack">
+            <div class="metrics-grid" id="evalMetrics">
+              <div class="metric">
+                <strong>--</strong>
+                <span>Pass rate</span>
+              </div>
+              <div class="metric">
+                <strong>--</strong>
+                <span>Citation coverage</span>
+              </div>
+              <div class="metric">
+                <strong>--</strong>
+                <span>Expected citation recall</span>
+              </div>
+            </div>
+            <div class="stack" id="evalResults">
+              <p class="empty">No evaluation run yet.</p>
+            </div>
+          </div>
+        </section>
       </section>
     </div>
   </main>
@@ -266,6 +339,8 @@ def render_dashboard() -> str:
     const answerEl = document.getElementById("answer");
     const reportEl = document.getElementById("report");
     const citationsEl = document.getElementById("citations");
+    const evalMetricsEl = document.getElementById("evalMetrics");
+    const evalResultsEl = document.getElementById("evalResults");
 
     function setStatus(message, isError = false) {
       statusEl.textContent = message;
@@ -307,6 +382,36 @@ def render_dashboard() -> str:
         ...payload.next_steps.map((step) => `- ${step}`)
       ].join("\\n");
       renderCitations(payload.answer.citations);
+    }
+
+    function formatPercent(value) {
+      return `${Math.round(value * 100)}%`;
+    }
+
+    function renderEvaluation(payload) {
+      evalMetricsEl.innerHTML = `
+        <div class="metric">
+          <strong>${formatPercent(payload.pass_rate)}</strong>
+          <span>Pass rate</span>
+        </div>
+        <div class="metric">
+          <strong>${formatPercent(payload.average_citation_coverage)}</strong>
+          <span>Citation coverage</span>
+        </div>
+        <div class="metric">
+          <strong>${formatPercent(payload.average_expected_citation_recall)}</strong>
+          <span>Expected citation recall</span>
+        </div>
+      `;
+      evalResultsEl.innerHTML = payload.results.map((item) => `
+        <div class="eval-row">
+          <div>
+            <strong>${item.id}</strong>
+            <div class="meta">coverage ${formatPercent(item.citation_coverage)} · expected recall ${formatPercent(item.expected_citation_recall)}</div>
+          </div>
+          <span class="badge ${item.passed ? "pass" : "fail"}">${item.passed ? "PASS" : "FAIL"}</span>
+        </div>
+      `).join("");
     }
 
     async function refreshCases() {
@@ -376,6 +481,13 @@ def render_dashboard() -> str:
       setStatus("Report ready");
     }
 
+    async function runEvaluations() {
+      setStatus("Running evaluations...");
+      const payload = await requestJson("/evals/demo");
+      renderEvaluation(payload);
+      setStatus(`Evaluations ready: ${payload.passed_count}/${payload.example_count} passed`);
+    }
+
     document.getElementById("importButton").addEventListener("click", () => {
       importNhtsaCase().catch((error) => setStatus(error.message, true));
     });
@@ -387,6 +499,9 @@ def render_dashboard() -> str:
     });
     document.getElementById("reportButton").addEventListener("click", () => {
       generateReport().catch((error) => setStatus(error.message, true));
+    });
+    document.getElementById("evalButton").addEventListener("click", () => {
+      runEvaluations().catch((error) => setStatus(error.message, true));
     });
 
     refreshCases().catch((error) => setStatus(error.message, true));
