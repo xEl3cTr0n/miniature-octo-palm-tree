@@ -1,7 +1,7 @@
 __pycache__/
 *.py[cod]
-.pytest_cache/
 *.egg-info/
+.pytest_cache/
 .venv/
 .env
 .DS_Store

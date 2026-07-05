@@ -9,6 +9,13 @@
 - Missing-evidence checks
 - Report endpoint
 
+## Phase 1.5: Real Data And Workflow Baseline
+
+- NHTSA vehicle complaint and recall adapter
+- Scripted live-data demo
+- FastAPI endpoint for public data source querying
+- Clean CI with deterministic unit tests
+
 ## Phase 2: Multimodal AI
 
 - OCR and layout-aware document parsing

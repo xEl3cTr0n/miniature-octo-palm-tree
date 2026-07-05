@@ -1,22 +1,47 @@
 # ClaimLens Architecture
 
-## Goal
+## System Overview
 
-ClaimLens demonstrates a production-minded multimodal AI workflow for claim, legal, and compliance review. The system starts with deterministic local components and is structured so Hugging Face models can replace each placeholder processor as the project matures.
+ClaimLens turns mixed case evidence into cited, reviewable AI outputs. The production architecture separates ingestion, retrieval, orchestration, evaluation, and review UI concerns.
 
-## Pipeline
+```text
+Next.js Review UI
+  -> FastAPI Case API
+    -> Ingestion Queue
+      -> OCR / ASR / Vision / Text Parsers
+    -> Retrieval Service
+      -> pgvector + BM25 + reranker + metadata filters
+    -> Agent Orchestrator
+      -> retrieval agent
+      -> policy agent
+      -> contradiction agent
+      -> missing evidence agent
+      -> report agent
+    -> Evaluation Service
+      -> citation precision
+      -> retrieval recall
+      -> answer faithfulness
+      -> latency and cost tracking
+```
 
-1. **Evidence ingestion** accepts documents, images, audio, video, email, and structured records.
-2. **Task routing** maps each artifact to model families such as document question answering, visual document retrieval, image-text-to-text, automatic speech recognition, text classification, and summarization.
-3. **Evidence normalization** converts model outputs into typed `EvidenceItem` records.
-4. **Retrieval** ranks evidence against reviewer questions and returns citations.
-5. **Reasoning checks** flag contradictions and missing evidence.
-6. **Report generation** produces reviewer next steps with grounded citations.
+## Hugging Face Task Mapping
 
-## Production extension points
+The intended full build uses these task families:
 
-- Replace keyword retrieval with pgvector hybrid search and a reranker.
-- Persist cases in PostgreSQL instead of the in-memory demo store.
-- Add object storage for source files.
-- Add LangGraph agents for ingestion, retrieval, policy comparison, contradiction detection, evaluation, and report writing.
-- Add tracing with OpenTelemetry, Phoenix, or LangSmith.
+- Document question answering for forms, policies, and reports.
+- Visual document retrieval for scanned pages, tables, and signatures.
+- Image-text-to-text and visual question answering for photos and screenshots.
+- Automatic speech recognition for recorded statements and calls.
+- Object detection and image segmentation for visual evidence regions.
+- Feature extraction and sentence similarity for embeddings.
+- Text classification, token classification, summarization, text ranking, and question answering for case reasoning.
+
+## Portfolio Differentiators
+
+The project is intentionally scoped beyond a basic chatbot. It should show:
+
+- grounded answers with citations;
+- multimodal evidence retrieval;
+- human-reviewable confidence and missing-evidence flags;
+- deterministic tests and offline evals;
+- clean separation between prototype logic and production adapters.

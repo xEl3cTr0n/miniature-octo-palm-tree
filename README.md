@@ -1,66 +1,93 @@
 # ClaimLens
 
-A multimodal AI evidence intelligence platform for insurance, legal, and compliance case review.
+ClaimLens is a portfolio-ready scaffold for a multimodal AI evidence intelligence platform. It is designed for insurance, legal, compliance, and operations workflows where reviewers need to reason over PDFs, images, audio, video, and structured case data.
 
-ClaimLens is designed as a portfolio-grade AI engineering project: it ingests mixed evidence packets, creates structured evidence records, performs citation-grounded retrieval, flags contradictions and missing evidence, and produces reviewer-ready reports.
+## Why This Project Is Worth Building
 
-## Why this project is valuable for an MIS-to-technical transition
+For an MIS major transitioning into a more technical role, this is a strong project because it bridges business systems thinking with hands-on AI engineering. The domain rewards understanding workflows, controls, data quality, auditability, and stakeholder needs while still requiring technical depth in APIs, retrieval, evaluation, databases, and deployment.
 
-This project is a strong bridge from MIS into technical AI/software roles because it combines business-process analysis with production engineering:
+The project demonstrates skills that map well to AI engineer, applied AI engineer, data/AI analyst, full-stack AI engineer, and technical product-adjacent roles:
 
-- **Business workflow modeling:** claim review, evidence intake, compliance checklists, and audit reporting.
-- **Data systems:** normalized metadata, vector-ready evidence chunks, schemas, and reproducible datasets.
-- **Backend engineering:** FastAPI services, typed models, testable pipelines, and API contracts.
-- **Applied AI:** multimodal task routing, retrieval-augmented generation design, evaluation, and human review loops.
-- **LLMOps:** measurable faithfulness, citation quality, latency, and reviewer feedback.
+- Multimodal ingestion for documents, images, audio, video, and tabular evidence.
+- Retrieval-augmented generation with citations and confidence scoring.
+- Agentic workflows for retrieval, policy comparison, contradiction checks, and report generation.
+- Evaluation harnesses for citation coverage, retrieval quality, and hallucination prevention.
+- Production patterns such as async processing, observability, typed schemas, CI, and deployment docs.
 
-## MVP included in this repo
+## Current Implementation
 
-This initial build includes a runnable backend-oriented foundation:
+This repository starts with a deterministic Python/FastAPI core that can be expanded into the full system:
 
-- A FastAPI app with endpoints for health checks, case ingestion, querying, contradiction detection, missing-evidence checks, and report generation.
-- A deterministic local evidence pipeline that can run without paid model APIs.
-- Domain schemas for cases, evidence items, citations, findings, and reports.
-- A synthetic claim packet for demo/testing.
-- Unit tests covering ingestion, retrieval, contradiction detection, and missing-evidence logic.
-- Documentation for architecture, roadmap, and evaluation strategy.
+- `claimlens/core/ingestion.py` detects evidence types and chunks evidence for retrieval.
+- `claimlens/core/retrieval.py` provides a stable retrieval interface backed by a simple lexical retriever.
+- `claimlens/agents/checklists.py` checks missing evidence requirements for claim workflows.
+- `claimlens/evaluators/faithfulness.py` provides a CI-friendly citation coverage metric.
+- `claimlens/api/main.py` exposes health and question-answering endpoints.
 
-## Hugging Face task mapping
-
-ClaimLens is designed to integrate these Hugging Face task families:
-
-- Document Question Answering
-- Visual Document Retrieval
-- Image-Text-to-Text
-- Visual Question Answering
-- Automatic Speech Recognition
-- Feature Extraction
-- Question Answering
-- Sentence Similarity
-- Summarization
-- Text Classification
-- Text Ranking
-- Token Classification
-- Object Detection
-- Image Segmentation
-
-## Quickstart
+## Local Development
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -e '.[dev]'
-uvicorn claimlens_api.main:app --reload
-```
-
-Run tests:
-
-```bash
+python -m pip install -e '.[dev]'
 pytest
+uvicorn claimlens.api.main:app --reload
 ```
 
-Try the demo:
+## Example API Request
 
 ```bash
-python scripts/demo_case.py
+curl -X POST http://127.0.0.1:8000/ask \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "claim_type": "auto_collision",
+    "question": "Is rear bumper damage supported?",
+    "evidence": [
+      {
+        "id": "note-1",
+        "type": "text",
+        "title": "Adjuster Note",
+        "content": "Rear bumper damage is visible in the uploaded photo and repair estimate."
+      }
+    ]
+  }'
 ```
+
+## Real Data Demo: NHTSA
+
+ClaimLens can pull public vehicle complaint and recall data from NHTSA and convert it into citable evidence records.
+
+Run a live terminal demo:
+
+```bash
+python scripts/import_nhtsa_case.py \
+  --make Honda \
+  --model Accord \
+  --year 2020 \
+  --question "Do complaints or recalls mention warning lights or rear camera failure?"
+```
+
+Or query it through the FastAPI app:
+
+```bash
+curl -X POST http://127.0.0.1:8000/ask/nhtsa \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "make": "Honda",
+    "model": "Accord",
+    "year": 2020,
+    "question": "Do complaints or recalls mention warning lights or rear camera failure?",
+    "max_complaints": 10,
+    "max_recalls": 5
+  }'
+```
+
+This source is useful for portfolio demos because it shows real-world data ingestion, evidence normalization, citation-backed retrieval, and review-oriented answers without requiring private claims data.
+
+## Roadmap
+
+1. Replace lexical retrieval with hybrid search using pgvector, BM25, metadata filters, and reranking.
+2. Add OCR, ASR, image captioning, object detection, and video frame extraction adapters.
+3. Add LangGraph agents for evidence retrieval, policy comparison, contradiction detection, and report generation.
+4. Add golden datasets and evaluation dashboards for retrieval recall, citation precision, faithfulness, cost, and latency.
+5. Add a reviewer UI with document preview, image regions, timestamps, graph visualization, and human feedback.
