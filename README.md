@@ -2,18 +2,6 @@
 
 ClaimLens is a portfolio-ready scaffold for a multimodal AI evidence intelligence platform. It is designed for insurance, legal, compliance, and operations workflows where reviewers need to reason over PDFs, images, audio, video, and structured case data.
 
-## Why This Project Is Worth Building
-
-For an MIS major transitioning into a more technical role, this is a strong project because it bridges business systems thinking with hands-on AI engineering. The domain rewards understanding workflows, controls, data quality, auditability, and stakeholder needs while still requiring technical depth in APIs, retrieval, evaluation, databases, and deployment.
-
-The project demonstrates skills that map well to AI engineer, applied AI engineer, data/AI analyst, full-stack AI engineer, and technical product-adjacent roles:
-
-- Multimodal ingestion for documents, images, audio, video, and tabular evidence.
-- Retrieval-augmented generation with citations and confidence scoring.
-- Agentic workflows for retrieval, policy comparison, contradiction checks, and report generation.
-- Evaluation harnesses for citation coverage, retrieval quality, and hallucination prevention.
-- Production patterns such as async processing, observability, typed schemas, CI, and deployment docs.
-
 ## Current Implementation
 
 This repository starts with a deterministic Python/FastAPI core that can be expanded into the full system:
